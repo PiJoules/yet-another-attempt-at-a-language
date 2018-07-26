@@ -1,0 +1,69 @@
+CLANG_VERSION = 6.0
+CC = clang-$CLANG_VERSION
+CXX = clang++-$CLANG_VERSION
+LLC = llc-$CLANG_VERSION
+CLANG_FORMAT = clang-format-$CLANG_VERSION
+LLVM_CONFIG = llvm-config-$CLANG_VERSION
+
+LLVM_CONFIG_OPTIONS= $LLVM_CONFIG --cxxflags --ldflags --system-libs --libs all
+CXX_COMMON_OPTIONS = $$($LLVM_CONFIG_OPTIONS) -g -std=c++14 -Wno-unknown-warning-option -fno-exceptions
+CXX_OPTIONS = $CXX_COMMON_OPTIONS -O2
+CXX_TEST_OPTIONS = $CXX_COMMON_OPTIONS -O0 -lgtest -pthread
+
+AST_INCLUDES = AST/ASTCommon.h AST/Dump.h AST/Expr.h AST/ExternDecl.h AST/Type.h AST/Stmt.h
+INCLUDES = ArgParser.h Lexer.h Parser.h $AST_INCLUDES
+
+TEST_SRCS = TestArgParser.cpp TestASTDump.cpp TestLexer.cpp TestParser.cpp
+SRCS = ArgParser.cpp AST/ASTCommon.cpp AST/Expr.cpp AST/Dump.cpp Lexer.cpp Parser.cpp
+MAIN_SRCS = compiler.cpp
+
+########## Regular build ##########
+
+rule compiler
+  command = $CXX $CXX_OPTIONS compiler.cpp $SRCS -o $out
+
+build compiler : compiler
+
+########## Hello world example ##########
+
+rule make_ir
+  command = ./compiler examples/hello_world.lang --output $out
+
+build tmp_ir.o : make_ir | compiler
+
+rule make_exe
+  command = $CXX $in -o $out
+
+build hello_world : make_exe tmp_ir.o | tmp_ir.o
+
+default hello_world
+
+############# Tests ##############
+
+rule make_test
+  command = $CXX $in $SRCS -o $out $CXX_TEST_OPTIONS
+
+rule run_test
+  command = valgrind ./$in
+
+build TestLexer : make_test TestLexer.cpp
+build TestParser : make_test TestParser.cpp
+build TestASTDump : make_test TestASTDump.cpp
+build TestArgParser : make_test TestArgParser.cpp
+
+build check-lexer : run_test TestLexer
+build check-parser : run_test TestParser
+build check-ast-dump : run_test TestASTDump
+build check-arg-parser : run_test TestArgParser
+
+rule run_all
+  command = echo "Success"
+
+build check-all : run_all | check-lexer check-parser check-ast-dump check-arg-parser
+
+############ Formatting ###########
+
+rule format-all
+  command = $CLANG_FORMAT -i -style=Google -sort-includes $INCLUDES $SRCS $TEST_SRCS $MAIN_SRCS
+
+build format-all : format-all

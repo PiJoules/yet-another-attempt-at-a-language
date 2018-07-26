@@ -1,0 +1,25 @@
+a.out
+main
+*.o
+*.swp
+obj
+out
+tmp
+
+example.cpp
+toy.cpp
+*.a
+.ninja*
+old/*
+
+# Tests
+TestLexer
+TestParser
+TestASTDump
+TestArgParser
+
+# Generated temporary files
+tmp_ir
+tmp_obj
+compiler
+hello_world
