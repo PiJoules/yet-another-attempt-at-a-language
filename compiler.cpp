@@ -160,8 +160,8 @@ class ASTVisitor {
 
 int main(int argc, char **argv) {
   lang::ArgParser parser;
-  parser.AddStringArgument("src", /*positional=*/true);
-  parser.AddStringArgument("--output");
+  parser.AddArgument<lang::StringParsingMethod>("src", /*positional=*/true);
+  parser.AddArgument<lang::StringParsingMethod>("--output");
 
   lang::ParsedArgs parsed_args = parser.Parse(argc, argv);
   if (!parser.DebugOk()) {
@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
 
   lang::ast::ASTVisitor Visitor("asdf");
   Visitor.VisitModule(*Mod);
-  //Visitor.Module().print(llvm::errs(), nullptr);
+  // Visitor.Module().print(llvm::errs(), nullptr);
 
   // Initialize the target registry etc.
   llvm::InitializeAllTargetInfos();

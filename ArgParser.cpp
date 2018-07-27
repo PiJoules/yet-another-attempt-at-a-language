@@ -13,23 +13,6 @@ static bool IsKeywordArg(const std::string &arg) {
 
 static bool IsPosArg(const std::string &arg) { return !IsKeywordArg(arg); }
 
-void ArgParser::AddStringArgument(const std::string &argname, bool positional) {
-  if (positional)
-    pos_parsing_methods_.push(
-        std::make_pair(argname, std::make_unique<StringParsingMethod>()));
-  else
-    parsing_methods_[argname] = std::make_unique<StringParsingMethod>();
-}
-
-void ArgParser::AddIntegerArgument(const std::string &argname,
-                                   bool positional) {
-  if (positional)
-    pos_parsing_methods_.push(
-        std::make_pair(argname, std::make_unique<IntegerParsingMethod>()));
-  else
-    parsing_methods_[argname] = std::make_unique<IntegerParsingMethod>();
-}
-
 ParsedArgs ArgParser::Parse(unsigned argc, char **argv) {
   std::vector<std::string> args(argv, argv + argc);
   return Parse(args);

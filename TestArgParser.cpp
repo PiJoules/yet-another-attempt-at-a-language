@@ -12,7 +12,7 @@ TEST(TestArgParser, StringArgument) {
       "arg",
   };
   ArgParser parser;
-  parser.AddStringArgument("--foo");
+  parser.AddArgument<StringParsingMethod>("--foo");
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
@@ -30,7 +30,7 @@ TEST(TestArgParser, IntegerArgument) {
       "2",
   };
   ArgParser parser;
-  parser.AddIntegerArgument("--foo");
+  parser.AddArgument<IntegerParsingMethod>("--foo");
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
@@ -48,8 +48,8 @@ TEST(TestArgParser, PositionalArgument) {
       "2",
   };
   ArgParser parser;
-  parser.AddStringArgument("foo", /*positional=*/true);
-  parser.AddIntegerArgument("bar", /*positional=*/true);
+  parser.AddArgument<StringParsingMethod>("foo", /*positional=*/true);
+  parser.AddArgument<IntegerParsingMethod>("bar", /*positional=*/true);
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
@@ -73,8 +73,8 @@ TEST(TestArgParser, ArgcArgvArgs) {
   char *strargs[] = {arg1, arg2, arg3, arg4, nullptr};
 
   ArgParser parser;
-  parser.AddIntegerArgument("--foo");
-  parser.AddStringArgument("bar", /*positional=*/true);
+  parser.AddArgument<IntegerParsingMethod>("--foo");
+  parser.AddArgument<StringParsingMethod>("bar", /*positional=*/true);
 
   ParsedArgs parsed_args = parser.Parse(/*argc=*/4, strargs);
   ASSERT_TRUE(parser.DebugOk());

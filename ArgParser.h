@@ -88,8 +88,14 @@ class ArgParser {
   typedef std::queue<std::pair<std::string, std::unique_ptr<ArgParsingMethod>>>
       PosParsingMethods;
 
-  void AddStringArgument(const std::string &argname, bool positional = false);
-  void AddIntegerArgument(const std::string &argname, bool positional = false);
+  template <class ArgTy>
+  void AddArgument(const std::string &argname, bool positional = false) {
+    if (positional)
+      pos_parsing_methods_.push(
+          std::make_pair(argname, std::make_unique<ArgTy>()));
+    else
+      parsing_methods_[argname] = std::make_unique<ArgTy>();
+  }
 
   ParsedArgs Parse(const std::vector<std::string> &args);
   ParsedArgs Parse(unsigned argc, char **argv);
