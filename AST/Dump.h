@@ -3,6 +3,8 @@
 
 #include <iostream>
 
+#include "Visitor.h"
+
 namespace lang {
 namespace ast {
 
@@ -17,20 +19,20 @@ class Return;
 class StringLiteral;
 class Typename;
 
-class ASTDumper {
+class ASTDumper : public Visitor {
  public:
   ASTDumper(std::ostream &out) : out_(out) {}
 
-  void Visit(const Module &module);
-  void Visit(const FunctionDeclaration &func_decl);
-  void Visit(const ArgumentDeclaration &arg_decl);
-  void Visit(const Return &ret);
-  void Visit(const ExprStmt &exprstmt);
-  void Visit(const Call &call);
-  void Visit(const ID &id);
-  void Visit(const StringLiteral &str);
-  void Visit(const IntegerLiteral &integer);
-  void Visit(const Typename &type);
+  void Visit(const Module &module) override;
+  void Visit(const FunctionDeclaration &func_decl) override;
+  void Visit(const ArgumentDeclaration &arg_decl) override;
+  void Visit(const Return &ret) override;
+  void Visit(const ExprStmt &exprstmt) override;
+  void Visit(const Call &call) override;
+  void Visit(const ID &id) override;
+  void Visit(const StringLiteral &str) override;
+  void Visit(const IntegerLiteral &integer) override;
+  void Visit(const Typename &type) override;
 
  private:
   void AddPadding() const {

@@ -4,9 +4,11 @@
 #include <ostream>
 
 #include "Dump.h"
+#include "Visitor.h"
 
 #define ACCEPT_VISITORS \
-  void accept(ASTDumper &visitor) const override { visitor.Visit(*this); }
+  void accept(ASTDumper &visitor) const override { visitor.Visit(*this); } \
+  void accept(Visitor &visitor) const override { visitor.Visit(*this); }
 
 namespace lang {
 namespace ast {
@@ -16,6 +18,7 @@ class Node {
   virtual ~Node() {}
 
   virtual void accept(ASTDumper &visitor) const = 0;
+  virtual void accept(Visitor &visitor) const = 0;
 };
 
 }  // namespace ast

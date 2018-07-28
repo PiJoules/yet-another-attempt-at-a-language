@@ -10,11 +10,11 @@ CXX_COMMON_OPTIONS = $$($LLVM_CONFIG_OPTIONS) -g -std=c++14 -Wno-unknown-warning
 CXX_OPTIONS = $CXX_COMMON_OPTIONS -O2
 CXX_TEST_OPTIONS = $CXX_COMMON_OPTIONS -O0 -Werror -lgtest -pthread
 
-AST_INCLUDES = AST/ASTCommon.h AST/Dump.h AST/Expr.h AST/ExternDecl.h AST/Type.h AST/Stmt.h
+AST_INCLUDES = AST/ASTCommon.h AST/Dump.h AST/Expr.h AST/ExternDecl.h AST/Type.h AST/Stmt.h AST/Visitor.h
 INCLUDES = ArgParser.h Lexer.h Parser.h $AST_INCLUDES
 
 TEST_SRCS = tests/TestArgParser.cpp tests/TestASTDump.cpp tests/TestLexer.cpp tests/TestParser.cpp
-SRCS = ArgParser.cpp AST/ASTCommon.cpp AST/Expr.cpp AST/Dump.cpp Lexer.cpp Parser.cpp
+SRCS = ArgParser.cpp AST/ASTCommon.cpp AST/Expr.cpp AST/Dump.cpp AST/Visitor.cpp Lexer.cpp Parser.cpp
 MAIN_SRCS = compiler.cpp
 
 ########## Regular build ##########
