@@ -312,4 +312,27 @@ std::unique_ptr<Stmt> Parser::ParseStmt() {
   return stmt;
 }
 
+bool Parser::DebugOk() const {
+  if (Status_ == PSTAT_OK) return true;
+
+  switch (Status_) {
+    case PSTAT_OK:
+      return true;
+    case PSTAT_LEXER_ERR:
+      std::cerr << "Lexer error" << std::endl;
+      break;
+    case PSTAT_UNEXPECTED_TOKEN_ERR:
+      std::cerr << "Unexpected token" << std::endl;
+      LastReadTok().dump(std::cerr);
+      std::cerr << std::endl;
+      break;
+    case PSTAT_BAD_INT_ERR:
+      std::cerr << "Could not parse int literal" << std::endl;
+      break;
+  }
+
+  DumpParseStack(std::cerr);
+  return false;
+}
+
 }  // namespace lang

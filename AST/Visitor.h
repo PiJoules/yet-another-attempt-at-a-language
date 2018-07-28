@@ -14,6 +14,7 @@ class Module;
 class Return;
 class StringLiteral;
 class Typename;
+class VarDecl;
 
 class Visitor {
  public:
@@ -27,6 +28,7 @@ class Visitor {
   virtual void Visit(const StringLiteral &str);
   virtual void Visit(const IntegerLiteral &integer);
   virtual void Visit(const Typename &type);
+  virtual void Visit(const VarDecl &type);
 };
 
 }  // namespace ast

@@ -37,6 +37,7 @@ class Parser {
 
   enum ParserStatus Status() const { return Status_; }
   bool Ok() const { return Status_ == PSTAT_OK; }
+  bool DebugOk() const;
   const Lexer &Lex() const { return Lex_; }
   bool ReachedEOF() { return Lex_.ReachedEOF(); }
 
@@ -46,11 +47,11 @@ class Parser {
   Token LastReadTok() const { return LastReadTok_; }
 
   void DumpParseStack(std::ostream &out) const {
-    out << "<";
+    out << "Parse stack <";
     for (const std::string &rule : ParserStack_) {
       out << rule << "; ";
     }
-    out << ">";
+    out << ">" << std::endl;
   }
 
  private:

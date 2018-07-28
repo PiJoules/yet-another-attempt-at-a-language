@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
       parsed_args.GetArg<lang::StringArgument>(SRC_FLAG).getValue());
   lang::Parser Parse(input);
   std::unique_ptr<lang::ast::Module> Mod = Parse.Parse();
-  ASSERT(Parse.Ok());  // TODO: Error checking
+  ASSERT(Parse.DebugOk());  // TODO: Error checking
 
   lang::CodeGen Generator("asdf");
   Generator.Visit(*Mod);

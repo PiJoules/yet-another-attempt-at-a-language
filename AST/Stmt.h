@@ -33,6 +33,22 @@ class Return : public Stmt {
   std::unique_ptr<Expr> RetVal_;
 };
 
+class VarDecl : public Stmt {
+ public:
+  VarDecl(const std::string &varname, std::unique_ptr<Expr> init)
+      : varname_(varname), init_(std::move(init)) {}
+
+  std::string Name() const { return varname_; }
+  const Expr &Init() const { return *init_; }
+  bool HasInit() const { return init_ == nullptr; }
+
+  ACCEPT_VISITORS;
+
+ private:
+  std::string varname_;
+  std::unique_ptr<Expr> init_;
+};
+
 }  // namespace ast
 }  // namespace lang
 

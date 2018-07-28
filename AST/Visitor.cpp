@@ -35,5 +35,9 @@ void Visitor::Visit(const StringLiteral &str) {}
 void Visitor::Visit(const IntegerLiteral &integer) {}
 void Visitor::Visit(const Typename &type) {}
 
+void Visitor::Visit(const VarDecl &vardecl) {
+  if (vardecl.HasInit()) vardecl.Init().accept(*this);
+}
+
 }  // namespace ast
 }  // namespace lang
