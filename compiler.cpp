@@ -4,159 +4,16 @@
 #include <vector>
 
 #include "ArgParser.h"
+#include "CodeGen.h"
 #include "Parser.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "llvm/IR/BasicBlock.h"
-#include "llvm/IR/Function.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/LegacyPassManager.h"
-#include "llvm/IR/Module.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/TargetSelect.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Target/TargetOptions.h"
-
-#define xstr(s) str(s)
-#define str(s) #s
-#define ASSERT(COND)                                                \
-  {                                                                 \
-    if (!(COND)) {                                                  \
-      fputs("Assertion failed with '" xstr(COND) "' on line " xstr( \
-                __LINE__) "\n",                                     \
-            stderr);                                                \
-      abort();                                                      \
-    }                                                               \
-  }
-
-static llvm::LLVMContext GlobalContext;
-
-namespace lang {
-namespace ast {
-
-class ASTVisitor {
- public:
-  ASTVisitor(const std::string &ModuleID)
-      : Module_(ModuleID, GlobalContext), Builder_(GlobalContext) {
-    Module_.setTargetTriple(llvm::sys::getDefaultTargetTriple());
-    PrintfFunc_ = CreatePrintfFunc();
-  }
-
-  void VisitModule(const Module &Mod) {
-    for (const auto &ExternDecl : Mod.ExternDecls()) {
-      // TODO: Other external decls
-      VisitFunctionDecl(static_cast<const FunctionDeclaration &>(*ExternDecl));
-    }
-  }
-
-  void VisitFunctionDecl(const FunctionDeclaration &FuncDecl) {
-    const std::string &FuncName = FuncDecl.Name();
-
-    // TODO: Function arguments
-    llvm::FunctionType *funcType =
-        llvm::FunctionType::get(CreateType(*FuncDecl.ReturnType()), false);
-
-    llvm::Function *func = llvm::Function::Create(
-        funcType, llvm::Function::ExternalLinkage, FuncName, &Module_);
-    auto *entry =
-        llvm::BasicBlock::Create(GlobalContext, FuncName + "_func", func);
-    Builder_.SetInsertPoint(entry);
-
-    for (const auto &stmt : FuncDecl.Body()) {
-      if (const auto *exprstmt = dynamic_cast<const ExprStmt *>(stmt.get())) {
-        VisitExprStmt(*exprstmt);
-      } else if (const auto *retstmt =
-                     dynamic_cast<const Return *>(stmt.get())) {
-        VisitReturnStmt(*retstmt);
-      } else {
-        ASSERT(0 && "Unknown stmt type");
-      }
-    }
-  }
-
-  void VisitExprStmt(const ExprStmt &exprstmt) {
-    VisitExpr(*exprstmt.Expression());
-  }
-
-  void VisitReturnStmt(const Return &retstmt) {
-    Builder_.CreateRet(VisitExpr(*retstmt.Value()));
-  }
-
-  llvm::Value *VisitExpr(const Expr &expr) {
-    if (const auto *call = dynamic_cast<const Call *>(&expr)) {
-      return VisitCall(*call);
-    } else if (const auto *str = dynamic_cast<const StringLiteral *>(&expr)) {
-      return VisitStringLiteral(*str);
-    } else if (const auto *intexpr =
-                   dynamic_cast<const IntegerLiteral *>(&expr)) {
-      return VisitIntExpr(*intexpr);
-    } else if (const auto *id = dynamic_cast<const ID *>(&expr)) {
-      return VisitID(*id);
-    } else {
-      ASSERT(0 && "Unhandled expression");
-    }
-  }
-
-  llvm::Value *VisitID(const ID &id) {
-    const std::string Name = id.Name();
-    if (Name == "printf") {
-      return PrintfFunc_;
-    } else {
-      ASSERT(0 && "Unknown variable");
-    }
-  }
-
-  llvm::Value *VisitCall(const Call &call) {
-    std::vector<llvm::Value *> Args;
-    for (const auto &Arg : call.Args()) {
-      Args.push_back(VisitExpr(*Arg));
-    }
-    return Builder_.CreateCall(VisitExpr(call.Caller()), Args);
-  }
-
-  llvm::Value *VisitStringLiteral(const StringLiteral &str) {
-    return Builder_.CreateGlobalStringPtr(str.EscapedValue());
-  }
-
-  llvm::Value *VisitIntExpr(const IntegerLiteral &intexpr) {
-    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(GlobalContext),
-                                  intexpr.Value());
-  }
-
-  llvm::Type *CreateType(const Type &Ty) {
-    // TODO: Other types
-    const auto &type = dynamic_cast<const Typename &>(Ty);
-    const std::string &Name = type.Name();
-    if (Name == "int") {
-      return Builder_.getInt32Ty();
-    } else {
-      ASSERT(0 && "Unknown typename");
-    }
-  }
-
-  llvm::Module &Module() { return Module_; }
-
- private:
-  llvm::Constant *CreatePrintfFunc() {
-    std::vector<llvm::Type *> PrintfArgs;
-    PrintfArgs.push_back(Builder_.getInt8Ty()->getPointerTo());
-    llvm::ArrayRef<llvm::Type *> argsRef(PrintfArgs);
-    llvm::FunctionType *PrintfType =
-        llvm::FunctionType::get(Builder_.getInt32Ty(), argsRef,
-                                /*isVarArg=*/true);
-    return Module_.getOrInsertFunction("printf", PrintfType);
-  }
-
-  llvm::Module Module_;
-  llvm::IRBuilder<> Builder_;
-
-  llvm::Constant *PrintfFunc_;
-};
-
-}  // namespace ast
-}  // namespace lang
 
 constexpr char SRC_FLAG[] = "src";
 constexpr char OUTPUT_FLAG[] = "output";
@@ -190,10 +47,10 @@ int main(int argc, char **argv) {
   std::unique_ptr<lang::ast::Module> Mod = Parse.Parse();
   ASSERT(Parse.Ok());  // TODO: Error checking
 
-  lang::ast::ASTVisitor Visitor("asdf");
-  Visitor.VisitModule(*Mod);
+  lang::CodeGen Generator("asdf");
+  Generator.VisitModule(*Mod);
   if (parsed_args.HasArg(LLVM_DUMP_FLAG)) {
-    Visitor.Module().print(llvm::errs(), nullptr);
+    Generator.Module().print(llvm::errs(), nullptr);
     return 0;
   } else if (parsed_args.HasArg(AST_DUMP_FLAG)) {
     lang::ast::ASTDumper dumper(std::cerr);
@@ -248,7 +105,7 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  pass.run(Visitor.Module());
+  pass.run(Generator.Module());
   dest.flush();
 
   return 0;
