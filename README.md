@@ -25,3 +25,11 @@ $ ninja check-all  # Run all tests. Requires libgtest
 # Code formatting
 $ ninja format-all
 ```
+
+## Goals
+
+- High level language
+- No manual memory management
+  - Allocation/freeing handled through ownership
+- Minimal (ideally no) undefined behavior
+- Good readbility

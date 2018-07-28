@@ -56,10 +56,23 @@ build check-parser : run_test TestParser
 build check-ast-dump : run_test TestASTDump
 build check-arg-parser : run_test TestArgParser
 
+rule save_output
+  command = ./$in > $out 2>&1
+
+rule make_hello_world_expected_out
+  command = echo "hello world" > $out
+
+rule check_hello_world
+  command = diff -q $in
+
+build hello_world_out : save_output hello_world
+build hello_world_expected_out : make_hello_world_expected_out
+build check-hello-world : check_hello_world hello_world_out hello_world_expected_out | hello_world
+
 rule run_all
   command = echo "Success"
 
-build check-all : run_all | check-lexer check-parser check-ast-dump check-arg-parser compiler
+build check-all : run_all | check-lexer check-parser check-ast-dump check-arg-parser check-hello-world
 
 ############ Formatting ###########
 
