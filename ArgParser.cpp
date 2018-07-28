@@ -7,11 +7,23 @@
 
 namespace lang {
 
-static bool IsKeywordArg(const std::string &arg) {
-  return arg.size() >= 2 && arg[0] == '-' && arg[1] == '-';
+namespace {
+
+enum ParsedArgType {
+  KEYWORD,
+  SHORT_KEYWORD,
+  POSITIONAL,
+};
+
+enum ParsedArgType GetArgType(const std::string &arg) {
+  if (arg.size() >= 2 && arg[0] == '-') {
+    if (arg[1] == '-') return KEYWORD;
+    else if (std::isalpha(arg[1])) return SHORT_KEYWORD;
+  }
+  return POSITIONAL;
 }
 
-static bool IsPosArg(const std::string &arg) { return !IsKeywordArg(arg); }
+}  // namespace
 
 ParsedArgs ArgParser::Parse(unsigned argc, char **argv) {
   std::vector<std::string> args(argv, argv + argc);
@@ -27,24 +39,42 @@ ParsedArgs ArgParser::Parse(const std::vector<std::string> &args) {
     std::string argname = *iter;
     unknown_arg_ = argname;
 
-    if (IsPosArg(argname)) {
-      if (pos_parsing_methods_.empty()) {
-        parse_status_ = NO_VALUE_FOR_POS_ARG;
-        return parsed_args;
-      }
+    enum ParsedArgType argtype = GetArgType(argname);
+    switch (argtype) {
+      case POSITIONAL: {
+        if (pos_parsing_methods_.empty()) {
+          parse_status_ = NO_VALUE_FOR_POS_ARG;
+          return parsed_args;
+        }
 
-      auto parsed_arg_pair = std::move(pos_parsing_methods_.front());
-      pos_parsing_methods_.pop();
+        auto parsed_arg_pair = std::move(pos_parsing_methods_.front());
+        pos_parsing_methods_.pop();
 
-      std::unique_ptr<Argument> parsed_arg =
-          parsed_arg_pair.second->ParseArgument(iter);
-      if (!parsed_arg) {
-        parse_status_ = NO_VALUE_FOR_POS_ARG;
-        return parsed_args;
+        std::unique_ptr<Argument> parsed_arg =
+            parsed_arg_pair.second->ParseArgument(iter);
+        if (!parsed_arg) {
+          parse_status_ = NO_VALUE_FOR_POS_ARG;
+          return parsed_args;
+        }
+        parsed_args.SetArg(parsed_arg_pair.first, std::move(parsed_arg));
+        continue;
       }
-      parsed_args.SetArg(parsed_arg_pair.first, std::move(parsed_arg));
-      continue;
+      case SHORT_KEYWORD: {
+        auto found_argname = short_argnames_.find(argname[1]);
+        if (found_argname == short_argnames_.end()) {
+          parse_status_ = NO_VALUE_FOR_FLAG;
+          return parsed_args;
+        }
+
+        argname = found_argname->second;
+        break;
+      }
+      case KEYWORD: {
+        argname = argname.substr(2);
+        break;
+      }
     }
+    unknown_arg_ = argname;
 
     if (parsing_methods_.find(argname) == parsing_methods_.end()) {
       parse_status_ = UNKNOWN_ARG;

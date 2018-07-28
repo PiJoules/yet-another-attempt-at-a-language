@@ -27,14 +27,14 @@ build compiler : compiler
 ########## Hello world example ##########
 
 rule make_ir
-  command = ./compiler examples/hello_world.lang --output $out
+  command = ./compiler examples/hello_world.lang -o $out
 
 build tmp_ir.o : make_ir | compiler
 
 rule make_exe
   command = $CXX $in -o $out
 
-build hello_world : make_exe tmp_ir.o | tmp_ir.o
+build hello_world : make_exe tmp_ir.o
 
 default hello_world
 

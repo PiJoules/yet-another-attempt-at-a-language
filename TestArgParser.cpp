@@ -12,13 +12,13 @@ TEST(TestArgParser, StringArgument) {
       "arg",
   };
   ArgParser parser;
-  parser.AddArgument<StringParsingMethod>("--foo");
+  parser.AddArgument<StringParsingMethod>("foo");
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
-  ASSERT_TRUE(parsed_args.HasArg("--foo"));
+  ASSERT_TRUE(parsed_args.HasArg("foo"));
 
-  auto arg = parsed_args.GetArg<StringArgument>("--foo");
+  auto arg = parsed_args.GetArg<StringArgument>("foo");
   ASSERT_STREQ(arg.getValue().c_str(), "arg");
 }
 
@@ -29,13 +29,13 @@ TEST(TestArgParser, IntegerArgument) {
       "2",
   };
   ArgParser parser;
-  parser.AddArgument<IntegerParsingMethod>("--foo");
+  parser.AddArgument<IntegerParsingMethod>("foo");
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
-  ASSERT_TRUE(parsed_args.HasArg("--foo"));
+  ASSERT_TRUE(parsed_args.HasArg("foo"));
 
-  auto arg = parsed_args.GetArg<IntegerArgument>("--foo");
+  auto arg = parsed_args.GetArg<IntegerArgument>("foo");
   ASSERT_EQ(arg.getValue(), 2);
 }
 
@@ -44,11 +44,11 @@ TEST(TestArgParser, UnusedArgs) {
       "exe",
   };
   ArgParser parser;
-  parser.AddArgument<IntegerParsingMethod>("--foo");
+  parser.AddArgument<IntegerParsingMethod>("foo");
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
-  ASSERT_FALSE(parsed_args.HasArg("--foo"));
+  ASSERT_FALSE(parsed_args.HasArg("foo"));
 }
 
 TEST(TestArgParser, PositionalArgument) {
@@ -81,18 +81,18 @@ TEST(TestArgParser, ArgcArgvArgs) {
   char *strargs[] = {arg1, arg2, arg3, arg4, nullptr};
 
   ArgParser parser;
-  parser.AddArgument<IntegerParsingMethod>("--foo");
+  parser.AddArgument<IntegerParsingMethod>("foo");
   parser.AddArgument<StringParsingMethod>("bar", /*positional=*/true);
 
   ParsedArgs parsed_args = parser.Parse(/*argc=*/4, strargs);
   ASSERT_TRUE(parser.DebugOk());
-  ASSERT_TRUE(parsed_args.HasArg("--foo"));
+  ASSERT_TRUE(parsed_args.HasArg("foo"));
   ASSERT_TRUE(parsed_args.HasArg("bar"));
 
   auto parsed_arg = parsed_args.GetArg<StringArgument>("bar");
   ASSERT_STREQ(parsed_arg.getValue().c_str(), "arg");
 
-  auto parsed_arg2 = parsed_args.GetArg<IntegerArgument>("--foo");
+  auto parsed_arg2 = parsed_args.GetArg<IntegerArgument>("foo");
   ASSERT_EQ(parsed_arg2.getValue(), 2);
 }
 
@@ -101,17 +101,36 @@ TEST(TestArgParser, DefaultArg) {
       "exe",
   };
   ArgParser parser;
-  parser.AddArgument<StringParsingMethod>("--foo");
+  parser.AddArgument<StringParsingMethod>("foo");
   parser.AddArgument<IntegerParsingMethod>("bar", /*positional=*/true);
 
   ParsedArgs parsed_args = parser.Parse(strargs);
   ASSERT_TRUE(parser.DebugOk());
+  ASSERT_FALSE(parsed_args.HasArg("foo"));
+  ASSERT_FALSE(parsed_args.HasArg("bar"));
 
-  auto foo = parsed_args.GetArg<StringArgument>("--foo", "abc");
+  auto foo = parsed_args.GetArg<StringArgument>("foo", "abc");
   ASSERT_STREQ(foo.getValue().c_str(), "abc");
 
   auto bar = parsed_args.GetArg<IntegerArgument>("foo", 2);
   ASSERT_EQ(bar.getValue(), 2);
+}
+
+TEST(TestArgParser, ShortArgName) {
+  std::vector<std::string> strargs = {
+      "exe",
+      "-f",
+      "abc",
+  };
+  ArgParser parser;
+  parser.AddKeywordArgument<StringParsingMethod>("foo", 'f');
+
+  ParsedArgs parsed_args = parser.Parse(strargs);
+  ASSERT_TRUE(parser.DebugOk());
+  ASSERT_TRUE(parsed_args.HasArg("foo"));
+
+  auto foo = parsed_args.GetArg<StringArgument>("foo");
+  ASSERT_STREQ(foo.getValue().c_str(), "abc");
 }
 
 }  // namespace

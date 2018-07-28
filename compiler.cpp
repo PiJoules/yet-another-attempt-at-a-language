@@ -161,7 +161,7 @@ class ASTVisitor {
 int main(int argc, char **argv) {
   lang::ArgParser parser;
   parser.AddArgument<lang::StringParsingMethod>("src", /*positional=*/true);
-  parser.AddArgument<lang::StringParsingMethod>("--output");
+  parser.AddKeywordArgument<lang::StringParsingMethod>("output", 'o');
 
   lang::ParsedArgs parsed_args = parser.Parse(argc, argv);
   if (!parser.DebugOk()) {
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
   }
 
   std::string Filename =
-      parsed_args.GetArg<lang::StringArgument>("--output", "output.o")
+      parsed_args.GetArg<lang::StringArgument>("output", "output.o")
           .getValue();
 
   std::error_code EC;
