@@ -17,7 +17,7 @@ class ArgParsingMethod {
   virtual ~ArgParsingMethod() {}
 
   virtual std::unique_ptr<Argument> ParseArgument(
-      std::vector<std::string>::const_iterator &args) = 0;
+      std::vector<std::string>::const_iterator &args) const = 0;
 };
 
 class StringArgument : public Argument {
@@ -32,7 +32,7 @@ class StringArgument : public Argument {
 class StringParsingMethod : public ArgParsingMethod {
  public:
   virtual std::unique_ptr<Argument> ParseArgument(
-      std::vector<std::string>::const_iterator &args) override;
+      std::vector<std::string>::const_iterator &args) const override;
 };
 
 class IntegerArgument : public Argument {
@@ -47,7 +47,16 @@ class IntegerArgument : public Argument {
 class IntegerParsingMethod : public ArgParsingMethod {
  public:
   virtual std::unique_ptr<Argument> ParseArgument(
-      std::vector<std::string>::const_iterator &args) override;
+      std::vector<std::string>::const_iterator &args) const override;
+};
+
+// An argument that does not have a value passed to it.
+// This is primarily used for arguments where you simply want to check if a
+// flag is provided or not.
+class EmptyArgument : public Argument {};
+class EmptyParsingMethod : public ArgParsingMethod {
+  virtual std::unique_ptr<Argument> ParseArgument(
+      std::vector<std::string>::const_iterator &args) const override;
 };
 
 enum ArgParseStatus {

@@ -158,23 +158,17 @@ class ASTVisitor {
 }  // namespace ast
 }  // namespace lang
 
+constexpr char OUTPUT_FLAG[] = "output";
+constexpr char LLVM_DUMP_FLAG[] = "llvm-dump";
+
 int main(int argc, char **argv) {
   lang::ArgParser parser;
   parser.AddArgument<lang::StringParsingMethod>("src", /*positional=*/true);
-  parser.AddKeywordArgument<lang::StringParsingMethod>("output", 'o');
+  parser.AddKeywordArgument<lang::StringParsingMethod>(OUTPUT_FLAG, 'o');
+  parser.AddKeywordArgument<lang::EmptyParsingMethod>(LLVM_DUMP_FLAG);
 
   lang::ParsedArgs parsed_args = parser.Parse(argc, argv);
   if (!parser.DebugOk()) {
-    return 1;
-  }
-
-  std::string Filename =
-      parsed_args.GetArg<lang::StringArgument>("output", "output.o").getValue();
-
-  std::error_code EC;
-  llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::F_None);
-  if (EC) {
-    std::cerr << "Could not open file: " << EC.message() << std::endl;
     return 1;
   }
 
@@ -185,7 +179,21 @@ int main(int argc, char **argv) {
 
   lang::ast::ASTVisitor Visitor("asdf");
   Visitor.VisitModule(*Mod);
-  // Visitor.Module().print(llvm::errs(), nullptr);
+  if (parsed_args.HasArg(LLVM_DUMP_FLAG)) {
+    Visitor.Module().print(llvm::errs(), nullptr);
+    return 0;
+  }
+
+  std::string Filename =
+      parsed_args.GetArg<lang::StringArgument>(OUTPUT_FLAG, "output.o")
+          .getValue();
+
+  std::error_code EC;
+  llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::F_None);
+  if (EC) {
+    std::cerr << "Could not open file: " << EC.message() << std::endl;
+    return 1;
+  }
 
   // Initialize the target registry etc.
   llvm::InitializeAllTargetInfos();

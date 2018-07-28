@@ -32,6 +32,10 @@ ParsedArgs ArgParser::Parse(unsigned argc, char **argv) {
   return Parse(args);
 }
 
+static bool IsEmptyParsingMethod(const ArgParsingMethod *method) {
+  return dynamic_cast<const EmptyParsingMethod *>(method) != nullptr;
+}
+
 ParsedArgs ArgParser::Parse(const std::vector<std::string> &args) {
   assert(args.size() >= 1 && "Expected at least one argument");
 
@@ -83,13 +87,15 @@ ParsedArgs ArgParser::Parse(const std::vector<std::string> &args) {
       return parsed_args;
     }
 
-    if (iter + 1 >= args.end()) {
+    const ArgParsingMethod *parsing_method = parsing_methods_[argname].get();
+
+    if (iter + 1 >= args.end() && !IsEmptyParsingMethod(parsing_method)) {
       parse_status_ = NO_VALUE_FOR_FLAG;
       return parsed_args;
     }
 
     std::unique_ptr<Argument> parsed_arg =
-        parsing_methods_[argname]->ParseArgument(++iter);
+        parsing_method->ParseArgument(++iter);
     if (!parsed_arg) {
       parse_status_ = PARSE_ERROR;
       return parsed_args;
@@ -104,14 +110,14 @@ ParsedArgs ArgParser::Parse(const std::vector<std::string> &args) {
 }
 
 std::unique_ptr<Argument> StringParsingMethod::ParseArgument(
-    std::vector<std::string>::const_iterator &args) {
+    std::vector<std::string>::const_iterator &args) const {
   auto arg = std::make_unique<StringArgument>(*args);
   ++args;
   return arg;
 }
 
 std::unique_ptr<Argument> IntegerParsingMethod::ParseArgument(
-    std::vector<std::string>::const_iterator &args) {
+    std::vector<std::string>::const_iterator &args) const {
   std::string strarg = *args;
   char *end = nullptr;
   long long val = std::strtoll(strarg.c_str(), &end, /*base=*/10);
@@ -123,6 +129,11 @@ std::unique_ptr<Argument> IntegerParsingMethod::ParseArgument(
 
   ++args;
   return arg;
+}
+
+std::unique_ptr<Argument> EmptyParsingMethod::ParseArgument(
+    std::vector<std::string>::const_iterator &args) const {
+  return std::make_unique<EmptyArgument>();
 }
 
 bool ArgParser::DebugOk() const {

@@ -59,7 +59,7 @@ build check-arg-parser : run_test TestArgParser
 rule run_all
   command = echo "Success"
 
-build check-all : run_all | check-lexer check-parser check-ast-dump check-arg-parser
+build check-all : run_all | check-lexer check-parser check-ast-dump check-arg-parser compiler
 
 ############ Formatting ###########
 

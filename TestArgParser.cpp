@@ -133,6 +133,21 @@ TEST(TestArgParser, ShortArgName) {
   ASSERT_STREQ(foo.getValue().c_str(), "abc");
 }
 
+TEST(TestArgParser, EmptyArg) {
+  std::vector<std::string> strargs = {
+      "exe",
+      "--foo",
+  };
+  ArgParser parser;
+  parser.AddKeywordArgument<EmptyParsingMethod>("foo");
+  parser.AddKeywordArgument<EmptyParsingMethod>("bar");
+
+  ParsedArgs parsed_args = parser.Parse(strargs);
+  ASSERT_TRUE(parser.DebugOk());
+  ASSERT_TRUE(parsed_args.HasArg("foo"));
+  ASSERT_FALSE(parsed_args.HasArg("bar"));
+}
+
 }  // namespace
 
 int main(int argc, char **argv) {
