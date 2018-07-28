@@ -158,13 +158,14 @@ class ASTVisitor {
 }  // namespace ast
 }  // namespace lang
 
+constexpr char SRC_FLAG[] = "src";
 constexpr char OUTPUT_FLAG[] = "output";
 constexpr char AST_DUMP_FLAG[] = "ast-dump";
 constexpr char LLVM_DUMP_FLAG[] = "llvm-dump";
 
 int main(int argc, char **argv) {
   lang::ArgParser parser;
-  parser.AddPositionalArgument<lang::StringParsingMethod>("src");
+  parser.AddPositionalArgument<lang::StringParsingMethod>(SRC_FLAG);
 
   struct lang::KWArgParams output_params = {};
   output_params.short_argname = 'o';
@@ -178,7 +179,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::ifstream input(argv[1]);
+  if (!parsed_args.HasArg(SRC_FLAG)) {
+    std::cerr << "Expected 1 source file" << std::endl;
+    return 1;
+  }
+
+  std::ifstream input(parsed_args.GetArg<lang::StringArgument>(SRC_FLAG).getValue());
   lang::Parser Parse(input);
   std::unique_ptr<lang::ast::Module> Mod = Parse.Parse();
   ASSERT(Parse.Ok());  // TODO: Error checking
