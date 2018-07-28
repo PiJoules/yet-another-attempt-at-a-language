@@ -6,8 +6,7 @@
 #include "Dump.h"
 #include "Visitor.h"
 
-#define ACCEPT_VISITORS                                                    \
-  void accept(ASTDumper &visitor) const override { visitor.Visit(*this); } \
+#define ACCEPT_VISITORS \
   void accept(Visitor &visitor) const override { visitor.Visit(*this); }
 
 namespace lang {
@@ -17,7 +16,6 @@ class Node {
  public:
   virtual ~Node() {}
 
-  virtual void accept(ASTDumper &visitor) const = 0;
   virtual void accept(Visitor &visitor) const = 0;
 };
 

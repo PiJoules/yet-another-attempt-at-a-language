@@ -9,6 +9,8 @@
 #include "llvm/IR/LLVMContext.h"
 #include "llvm/IR/Module.h"
 
+// FIXME: assert() gets emitted when compiling on my env so use this temporary
+// assert as a workaround.
 #define xstr(s) stringify(s)
 #define stringify(s) #s
 #define ASSERT(COND)                                                \
@@ -27,7 +29,7 @@ static llvm::LLVMContext GlobalContext;
 namespace lang {
 
 // TODO: Actually use the ast::Visitor methods
-class CodeGen : public ast::Visitor {
+class CodeGen : public virtual ast::Visitor {
  public:
   CodeGen(const std::string &ModuleID)
       : Module_(ModuleID, GlobalContext), Builder_(GlobalContext) {
@@ -35,113 +37,39 @@ class CodeGen : public ast::Visitor {
     PrintfFunc_ = CreatePrintfFunc();
   }
 
-  void VisitModule(const ast::Module &Mod) {
-    for (const auto &ExternDecl : Mod.ExternDecls()) {
-      // TODO: Other external decls
-      VisitFunctionDecl(
-          static_cast<const ast::FunctionDeclaration &>(*ExternDecl));
-    }
-  }
+  void Visit(const ast::Module &Mod) override;
+  void Visit(const ast::FunctionDeclaration &FuncDecl) override;
+  void Visit(const ast::ExprStmt &exprstmt) override;
+  void Visit(const ast::Return &retstmt) override;
 
-  void VisitFunctionDecl(const ast::FunctionDeclaration &FuncDecl) {
-    const std::string &FuncName = FuncDecl.Name();
+  void Visit(const ast::ID &id) override;
+  void Visit(const ast::Call &call) override;
+  void Visit(const ast::StringLiteral &str) override;
+  void Visit(const ast::IntegerLiteral &intexpr) override;
 
-    // TODO: Function arguments
-    llvm::FunctionType *funcType =
-        llvm::FunctionType::get(CreateType(*FuncDecl.ReturnType()), false);
-
-    llvm::Function *func = llvm::Function::Create(
-        funcType, llvm::Function::ExternalLinkage, FuncName, &Module_);
-    auto *entry =
-        llvm::BasicBlock::Create(GlobalContext, FuncName + "_func", func);
-    Builder_.SetInsertPoint(entry);
-
-    for (const auto &stmt : FuncDecl.Body()) {
-      if (const auto *exprstmt =
-              dynamic_cast<const ast::ExprStmt *>(stmt.get())) {
-        VisitExprStmt(*exprstmt);
-      } else if (const auto *retstmt =
-                     dynamic_cast<const ast::Return *>(stmt.get())) {
-        VisitReturnStmt(*retstmt);
-      } else {
-        ASSERT(0 && "Unknown stmt type");
-      }
-    }
-  }
-
-  void VisitExprStmt(const ast::ExprStmt &exprstmt) {
-    VisitExpr(*exprstmt.Expression());
-  }
-
-  void VisitReturnStmt(const ast::Return &retstmt) {
-    Builder_.CreateRet(VisitExpr(*retstmt.Value()));
-  }
-
-  llvm::Value *VisitExpr(const ast::Expr &expr) {
-    if (const auto *call = dynamic_cast<const ast::Call *>(&expr)) {
-      return VisitCall(*call);
-    } else if (const auto *str =
-                   dynamic_cast<const ast::StringLiteral *>(&expr)) {
-      return VisitStringLiteral(*str);
-    } else if (const auto *intexpr =
-                   dynamic_cast<const ast::IntegerLiteral *>(&expr)) {
-      return VisitIntExpr(*intexpr);
-    } else if (const auto *id = dynamic_cast<const ast::ID *>(&expr)) {
-      return VisitID(*id);
-    } else {
-      ASSERT(0 && "Unhandled expression");
-    }
-  }
-
-  llvm::Value *VisitID(const ast::ID &id) {
-    const std::string Name = id.Name();
-    if (Name == "printf") {
-      return PrintfFunc_;
-    } else {
-      ASSERT(0 && "Unknown variable");
-    }
-  }
-
-  llvm::Value *VisitCall(const ast::Call &call) {
-    std::vector<llvm::Value *> Args;
-    for (const auto &Arg : call.Args()) {
-      Args.push_back(VisitExpr(*Arg));
-    }
-    return Builder_.CreateCall(VisitExpr(call.Caller()), Args);
-  }
-
-  llvm::Value *VisitStringLiteral(const ast::StringLiteral &str) {
-    return Builder_.CreateGlobalStringPtr(str.EscapedValue());
-  }
-
-  llvm::Value *VisitIntExpr(const ast::IntegerLiteral &intexpr) {
-    return llvm::ConstantInt::get(llvm::Type::getInt32Ty(GlobalContext),
-                                  intexpr.Value());
-  }
-
-  llvm::Type *CreateType(const ast::Type &Ty) {
-    // TODO: Other types
-    const auto &type = dynamic_cast<const ast::Typename &>(Ty);
-    const std::string &Name = type.Name();
-    if (Name == "int") {
-      return Builder_.getInt32Ty();
-    } else {
-      ASSERT(0 && "Unknown typename");
-    }
-  }
+  llvm::Type *CreateType(const ast::Type &Ty);
 
   llvm::Module &Module() { return Module_; }
 
  private:
-  llvm::Constant *CreatePrintfFunc() {
-    std::vector<llvm::Type *> PrintfArgs;
-    PrintfArgs.push_back(Builder_.getInt8Ty()->getPointerTo());
-    llvm::ArrayRef<llvm::Type *> argsRef(PrintfArgs);
-    llvm::FunctionType *PrintfType =
-        llvm::FunctionType::get(Builder_.getInt32Ty(), argsRef,
-                                /*isVarArg=*/true);
-    return Module_.getOrInsertFunction("printf", PrintfType);
+  // TODO: Come up with a better way to return a new value on visiting an
+  // expression for some visitors
+  template <class ExprTy>
+  llvm::Value *CreateValue(const ExprTy &E) {
+    E.accept(*this);
+    ASSERT(return_val_ &&
+           "Expected visitor to call SetReturnVal() with a valid llvm::Value "
+           "when visiting expression");
+    llvm::Value *val = return_val_;
+    return_val_ = nullptr;
+    return val;
   }
+
+  void SetReturnVal(llvm::Value *val) { return_val_ = val; }
+
+  llvm::Constant *CreatePrintfFunc();
+
+  llvm::Value *return_val_ = nullptr;
 
   llvm::Module Module_;
   llvm::IRBuilder<> Builder_;

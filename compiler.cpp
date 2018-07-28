@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
   ASSERT(Parse.Ok());  // TODO: Error checking
 
   lang::CodeGen Generator("asdf");
-  Generator.VisitModule(*Mod);
+  Generator.Visit(*Mod);
   if (parsed_args.HasArg(LLVM_DUMP_FLAG)) {
     Generator.Module().print(llvm::errs(), nullptr);
     return 0;

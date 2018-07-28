@@ -14,7 +14,7 @@ AST_INCLUDES = AST/ASTCommon.h AST/Dump.h AST/Expr.h AST/ExternDecl.h AST/Type.h
 INCLUDES = ArgParser.h Lexer.h Parser.h CodeGen.h $AST_INCLUDES
 
 TEST_SRCS = tests/TestArgParser.cpp tests/TestASTDump.cpp tests/TestLexer.cpp tests/TestParser.cpp
-SRCS = ArgParser.cpp AST/ASTCommon.cpp AST/Expr.cpp AST/Dump.cpp AST/Visitor.cpp Lexer.cpp Parser.cpp
+SRCS = AST/ASTCommon.cpp AST/Expr.cpp AST/Dump.cpp AST/Visitor.cpp ArgParser.cpp CodeGen.cpp Lexer.cpp Parser.cpp
 MAIN_SRCS = compiler.cpp
 
 ########## Regular build ##########
