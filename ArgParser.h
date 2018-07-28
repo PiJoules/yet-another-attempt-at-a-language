@@ -68,13 +68,15 @@ class ParsedArgs {
     return args_.find(argname) != args_.end();
   }
 
-  const Argument &GetArg(const std::string &argname) const {
-    return *(args_.at(argname).get());
+  template <class ArgTy>
+  ArgTy GetArg(const std::string &argname) const {
+    return *dynamic_cast<const ArgTy *>(args_.at(argname).get());
   }
 
-  template <class ArgTy>
-  const ArgTy &GetArg(const std::string &argname) const {
-    return dynamic_cast<const ArgTy &>(GetArg(argname));
+  template <class ArgTy, class DefaultTy>
+  ArgTy GetArg(const std::string &argname, DefaultTy default_arg) {
+    if (HasArg(argname)) return GetArg<ArgTy>(argname);
+    return ArgTy(default_arg);
   }
 
  private:

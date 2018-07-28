@@ -168,11 +168,9 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::string Filename = "output.o";
-  if (parsed_args.HasArg("--output")) {
-    auto output = parsed_args.GetArg<lang::StringArgument>("--output");
-    Filename = output.getValue();
-  }
+  std::string Filename =
+      parsed_args.GetArg<lang::StringArgument>("--output", "output.o")
+          .getValue();
 
   std::error_code EC;
   llvm::raw_fd_ostream dest(Filename, EC, llvm::sys::fs::F_None);
