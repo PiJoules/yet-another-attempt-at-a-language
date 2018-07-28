@@ -91,19 +91,20 @@ class ArgParser {
       PosParsingMethods;
 
   template <class ArgTy>
-  void AddArgument(const std::string &argname, bool positional = false, char short_argname = '\0') {
+  void AddArgument(const std::string &argname, bool positional = false,
+                   char short_argname = '\0') {
     if (positional)
       pos_parsing_methods_.push(
           std::make_pair(argname, std::make_unique<ArgTy>()));
     else
       parsing_methods_[argname] = std::make_unique<ArgTy>();
 
-    if (std::isalpha(short_argname))
-      short_argnames_[short_argname] = argname;
+    if (std::isalpha(short_argname)) short_argnames_[short_argname] = argname;
   }
 
   template <class ArgTy>
-  void AddKeywordArgument(const std::string &argname, char short_argname = '\0') {
+  void AddKeywordArgument(const std::string &argname,
+                          char short_argname = '\0') {
     AddArgument<ArgTy>(argname, /*positional=*/false, short_argname);
   }
 

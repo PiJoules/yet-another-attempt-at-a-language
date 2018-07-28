@@ -17,8 +17,10 @@ enum ParsedArgType {
 
 enum ParsedArgType GetArgType(const std::string &arg) {
   if (arg.size() >= 2 && arg[0] == '-') {
-    if (arg[1] == '-') return KEYWORD;
-    else if (std::isalpha(arg[1])) return SHORT_KEYWORD;
+    if (arg[1] == '-')
+      return KEYWORD;
+    else if (std::isalpha(arg[1]))
+      return SHORT_KEYWORD;
   }
   return POSITIONAL;
 }
