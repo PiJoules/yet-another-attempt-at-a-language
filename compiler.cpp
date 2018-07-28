@@ -184,7 +184,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::ifstream input(parsed_args.GetArg<lang::StringArgument>(SRC_FLAG).getValue());
+  std::ifstream input(
+      parsed_args.GetArg<lang::StringArgument>(SRC_FLAG).getValue());
   lang::Parser Parse(input);
   std::unique_ptr<lang::ast::Module> Mod = Parse.Parse();
   ASSERT(Parse.Ok());  // TODO: Error checking

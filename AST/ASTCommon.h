@@ -6,7 +6,7 @@
 #include "Dump.h"
 #include "Visitor.h"
 
-#define ACCEPT_VISITORS \
+#define ACCEPT_VISITORS                                                    \
   void accept(ASTDumper &visitor) const override { visitor.Visit(*this); } \
   void accept(Visitor &visitor) const override { visitor.Visit(*this); }
 
