@@ -32,8 +32,10 @@ ParsedArgs ArgParser::Parse(unsigned argc, char **argv) {
   return Parse(args);
 }
 
-static bool IsEmptyParsingMethod(const ArgParsingMethod *method) {
-  return dynamic_cast<const EmptyParsingMethod *>(method) != nullptr;
+void ArgParser::HandleKWArgParams(const std::string &argname,
+                                  const struct KWArgParams &kwparams) {
+  if (std::isalpha(kwparams.short_argname))
+    short_argnames_[kwparams.short_argname] = argname;
 }
 
 ParsedArgs ArgParser::Parse(const std::vector<std::string> &args) {
@@ -82,20 +84,24 @@ ParsedArgs ArgParser::Parse(const std::vector<std::string> &args) {
     }
     unknown_arg_ = argname;
 
+    if (no_storage_args_.find(argname) != no_storage_args_.end()) {
+      parsed_args.SetArg(argname, std::make_unique<EmptyArgument>());
+      ++iter;
+      continue;
+    }
+
     if (parsing_methods_.find(argname) == parsing_methods_.end()) {
       parse_status_ = UNKNOWN_ARG;
       return parsed_args;
     }
 
-    const ArgParsingMethod *parsing_method = parsing_methods_[argname].get();
-
-    if (iter + 1 >= args.end() && !IsEmptyParsingMethod(parsing_method)) {
+    if (iter + 1 >= args.end()) {
       parse_status_ = NO_VALUE_FOR_FLAG;
       return parsed_args;
     }
 
     std::unique_ptr<Argument> parsed_arg =
-        parsing_method->ParseArgument(++iter);
+        parsing_methods_[argname]->ParseArgument(++iter);
     if (!parsed_arg) {
       parse_status_ = PARSE_ERROR;
       return parsed_args;
@@ -129,11 +135,6 @@ std::unique_ptr<Argument> IntegerParsingMethod::ParseArgument(
 
   ++args;
   return arg;
-}
-
-std::unique_ptr<Argument> EmptyParsingMethod::ParseArgument(
-    std::vector<std::string>::const_iterator &args) const {
-  return std::make_unique<EmptyArgument>();
 }
 
 bool ArgParser::DebugOk() const {

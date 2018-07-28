@@ -4,6 +4,7 @@
 #include <memory>
 #include <queue>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace lang {
@@ -54,10 +55,6 @@ class IntegerParsingMethod : public ArgParsingMethod {
 // This is primarily used for arguments where you simply want to check if a
 // flag is provided or not.
 class EmptyArgument : public Argument {};
-class EmptyParsingMethod : public ArgParsingMethod {
-  virtual std::unique_ptr<Argument> ParseArgument(
-      std::vector<std::string>::const_iterator &args) const override;
-};
 
 enum ArgParseStatus {
   SUCCESS,
@@ -92,6 +89,10 @@ class ParsedArgs {
   std::unordered_map<std::string, std::unique_ptr<Argument>> args_;
 };
 
+struct KWArgParams {
+  char short_argname;
+};
+
 class ArgParser {
  public:
   typedef std::unordered_map<std::string, std::unique_ptr<ArgParsingMethod>>
@@ -100,21 +101,34 @@ class ArgParser {
       PosParsingMethods;
 
   template <class ArgTy>
-  void AddArgument(const std::string &argname, bool positional = false,
-                   char short_argname = '\0') {
-    if (positional)
-      pos_parsing_methods_.push(
-          std::make_pair(argname, std::make_unique<ArgTy>()));
-    else
-      parsing_methods_[argname] = std::make_unique<ArgTy>();
+  void AddPositionalArgument(const std::string &argname) {
+    pos_parsing_methods_.push(
+        std::make_pair(argname, std::make_unique<ArgTy>()));
+  }
 
-    if (std::isalpha(short_argname)) short_argnames_[short_argname] = argname;
+  template <class ArgTy>
+  void AddKeywordArgument(const std::string &argname) {
+    struct KWArgParams default_params = {};
+    AddKeywordArgument<ArgTy>(argname, default_params);
   }
 
   template <class ArgTy>
   void AddKeywordArgument(const std::string &argname,
-                          char short_argname = '\0') {
-    AddArgument<ArgTy>(argname, /*positional=*/false, short_argname);
+                          const struct KWArgParams &kwparams) {
+    parsing_methods_[argname] = std::make_unique<ArgTy>();
+    HandleKWArgParams(argname, kwparams);
+  }
+
+  void AddEmptyKeywordArgument(const std::string &argname) {
+    no_storage_args_.insert(argname);
+    struct KWArgParams default_params = {};
+    HandleKWArgParams(argname, default_params);
+  }
+
+  void AddEmptyKeywordArgument(const std::string &argname,
+                               const struct KWArgParams &kwparams) {
+    no_storage_args_.insert(argname);
+    HandleKWArgParams(argname, kwparams);
   }
 
   ParsedArgs Parse(const std::vector<std::string> &args);
@@ -125,9 +139,13 @@ class ArgParser {
   bool DebugOk() const;
 
  private:
+  void HandleKWArgParams(const std::string &argname,
+                         const struct KWArgParams &kwparams);
+
   ParsingMethods parsing_methods_;
   PosParsingMethods pos_parsing_methods_;
   std::unordered_map<char, std::string> short_argnames_;
+  std::unordered_set<std::string> no_storage_args_;
 
   ArgParseStatus parse_status_ = SUCCESS;
 

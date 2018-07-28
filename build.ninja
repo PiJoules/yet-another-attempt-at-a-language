@@ -8,7 +8,7 @@ LLVM_CONFIG = llvm-config-$CLANG_VERSION
 LLVM_CONFIG_OPTIONS= $LLVM_CONFIG --cxxflags --ldflags --system-libs --libs all
 CXX_COMMON_OPTIONS = $$($LLVM_CONFIG_OPTIONS) -g -std=c++14 -Wno-unknown-warning-option -fno-exceptions
 CXX_OPTIONS = $CXX_COMMON_OPTIONS -O2
-CXX_TEST_OPTIONS = $CXX_COMMON_OPTIONS -O0 -lgtest -pthread
+CXX_TEST_OPTIONS = $CXX_COMMON_OPTIONS -O0 -Werror -lgtest -pthread
 
 AST_INCLUDES = AST/ASTCommon.h AST/Dump.h AST/Expr.h AST/ExternDecl.h AST/Type.h AST/Stmt.h
 INCLUDES = ArgParser.h Lexer.h Parser.h $AST_INCLUDES

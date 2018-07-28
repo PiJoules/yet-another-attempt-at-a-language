@@ -159,13 +159,19 @@ class ASTVisitor {
 }  // namespace lang
 
 constexpr char OUTPUT_FLAG[] = "output";
+constexpr char AST_DUMP_FLAG[] = "ast-dump";
 constexpr char LLVM_DUMP_FLAG[] = "llvm-dump";
 
 int main(int argc, char **argv) {
   lang::ArgParser parser;
-  parser.AddArgument<lang::StringParsingMethod>("src", /*positional=*/true);
-  parser.AddKeywordArgument<lang::StringParsingMethod>(OUTPUT_FLAG, 'o');
-  parser.AddKeywordArgument<lang::EmptyParsingMethod>(LLVM_DUMP_FLAG);
+  parser.AddPositionalArgument<lang::StringParsingMethod>("src");
+
+  struct lang::KWArgParams output_params = {};
+  output_params.short_argname = 'o';
+  parser.AddKeywordArgument<lang::StringParsingMethod>(OUTPUT_FLAG,
+                                                       output_params);
+  parser.AddEmptyKeywordArgument(AST_DUMP_FLAG);
+  parser.AddEmptyKeywordArgument(LLVM_DUMP_FLAG);
 
   lang::ParsedArgs parsed_args = parser.Parse(argc, argv);
   if (!parser.DebugOk()) {
@@ -181,6 +187,10 @@ int main(int argc, char **argv) {
   Visitor.VisitModule(*Mod);
   if (parsed_args.HasArg(LLVM_DUMP_FLAG)) {
     Visitor.Module().print(llvm::errs(), nullptr);
+    return 0;
+  } else if (parsed_args.HasArg(AST_DUMP_FLAG)) {
+    lang::ast::ASTDumper dumper(std::cerr);
+    dumper.Visit(*Mod);
     return 0;
   }
 
