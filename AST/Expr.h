@@ -32,7 +32,7 @@ class IntegerLiteral : public Expr {
 
 class StringLiteral : public Expr {
  public:
-  StringLiteral(std::string &Val) : Val_(Val) {}
+  StringLiteral(const std::string &Val) : Val_(Val) {}
 
   // Return the raw string from the source code with the surrounding quotes.
   std::string Value() const { return Val_; }

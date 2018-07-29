@@ -3,6 +3,7 @@
 
 #include "ASTCommon.h"
 #include "Expr.h"
+#include "Type.h"
 
 namespace lang {
 namespace ast {
@@ -35,16 +36,21 @@ class Return : public Stmt {
 
 class VarDecl : public Stmt {
  public:
-  VarDecl(const std::string &varname, std::unique_ptr<Expr> init)
-      : varname_(varname), init_(std::move(init)) {}
+  VarDecl(std::unique_ptr<Type> type, const std::string &varname,
+          std::unique_ptr<Expr> init)
+      : type_(std::move(type)), varname_(varname), init_(std::move(init)) {}
+  VarDecl(std::unique_ptr<Type> type, const std::string &varname)
+      : type_(std::move(type)), varname_(varname) {}
 
   std::string Name() const { return varname_; }
   const Expr &Init() const { return *init_; }
-  bool HasInit() const { return init_ == nullptr; }
+  const Type &VarType() const { return *type_; }
+  bool HasInit() const { return init_ != nullptr; }
 
   ACCEPT_VISITORS;
 
  private:
+  std::unique_ptr<Type> type_;
   std::string varname_;
   std::unique_ptr<Expr> init_;
 };

@@ -101,6 +101,11 @@ bool Lexer::ReadToken(Token &Tok) {
       Tok.Chars = ";";
       Tok.Kind = TOK_SEMICOL;
       return true;
+    case ':':
+      ReadCharAndUpdatePos();
+      Tok.Chars = ":";
+      Tok.Kind = TOK_COL;
+      return true;
     case ',':
       ReadCharAndUpdatePos();
       Tok.Chars = ",";
@@ -130,6 +135,11 @@ bool Lexer::ReadToken(Token &Tok) {
       ReadCharAndUpdatePos();
       Tok.Chars = "}";
       Tok.Kind = TOK_RBRACE;
+      return true;
+    case '=':
+      ReadCharAndUpdatePos();
+      Tok.Chars = "=";
+      Tok.Kind = TOK_ASSIGN;
       return true;
     case EOF:
       SetTokenEOF(Tok);

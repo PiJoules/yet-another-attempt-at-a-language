@@ -27,13 +27,19 @@ class Parser {
   std::unique_ptr<ast::FunctionDeclaration> ParseFunctionDeclaration();
   std::unique_ptr<ast::ArgumentDeclaration> ParseArgumentDeclaration();
 
-  std::unique_ptr<ast::Expr> ParseExpr();
   std::unique_ptr<ast::StringLiteral> ParseStringLiteral();
   std::unique_ptr<ast::IntegerLiteral> ParseIntegerLiteral();
   std::unique_ptr<ast::Expr> ParseIDExpr();
   std::unique_ptr<ast::Type> ParseType();
 
+  std::unique_ptr<ast::Expr> ParseExpr();
+  std::unique_ptr<ast::Expr> ParseIDExpr(Token idtok);
+  std::unique_ptr<ast::StringLiteral> ParseStringLiteral(Token inttok);
+  std::unique_ptr<ast::IntegerLiteral> ParseIntegerLiteral(Token strtok);
+
   std::unique_ptr<ast::Stmt> ParseStmt();
+  std::unique_ptr<ast::Stmt> ParseVarDeclOrIDExprStmt(Token idtok);
+  std::unique_ptr<ast::Stmt> ParseVarDecl(Token idtok);
 
   enum ParserStatus Status() const { return Status_; }
   bool Ok() const { return Status_ == PSTAT_OK; }
@@ -59,6 +65,8 @@ class Parser {
   bool ParseArgList(
       std::vector<std::unique_ptr<ast::ArgumentDeclaration>> &ArgList);
   bool ParseStmtList(std::vector<std::unique_ptr<ast::Stmt>> &StmtList);
+
+  // std::unique_ptr<Stmt> ParseVarDeclOrExprStmt();
 
   /**
    * Returns true if we can read a token off the lexer and matches the token

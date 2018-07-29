@@ -1,4 +1,5 @@
 #include "Parser.h"
+#include <cassert>
 #include <memory>
 
 using lang::ast::ArgumentDeclaration;
@@ -15,6 +16,7 @@ using lang::ast::Stmt;
 using lang::ast::StringLiteral;
 using lang::ast::Type;
 using lang::ast::Typename;
+using lang::ast::VarDecl;
 
 namespace lang {
 
@@ -58,7 +60,7 @@ std::unique_ptr<Module> Parser::ParseModule() {
 }
 
 /**
- * type ::= id
+ * type ::= ID
  */
 std::unique_ptr<Type> Parser::ParseType() {
   ParserStack_.push_back("Type");
@@ -68,7 +70,7 @@ std::unique_ptr<Type> Parser::ParseType() {
 }
 
 /**
- * argdecl ::= type id
+ * argdecl ::= type ID
  */
 std::unique_ptr<ArgumentDeclaration> Parser::ParseArgumentDeclaration() {
   ParserStack_.push_back("ArgumentDeclaration");
@@ -134,8 +136,8 @@ bool Parser::ParseStmtList(std::vector<std::unique_ptr<Stmt>> &StmtList) {
 }
 
 /**
- * funcdecl ::= type id '(' ')' '{' stmtlist '}'
- * funcdecl ::= type id '(' arglist ')' '{' stmtlist '}'
+ * funcdecl ::= type ID '(' ')' '{' stmtlist '}'
+ *          ::= type ID '(' arglist ')' '{' stmtlist '}'
  */
 std::unique_ptr<FunctionDeclaration> Parser::ParseFunctionDeclaration() {
   ParserStack_.push_back("FunctionDeclaration");
@@ -177,12 +179,12 @@ std::unique_ptr<FunctionDeclaration> Parser::ParseFunctionDeclaration() {
 }
 
 /**
- * expr ::= int
- *      ::= str
+ * expr ::= INT
+ *      ::= STR
  *      ::= idexpr
  */
 std::unique_ptr<Expr> Parser::ParseExpr() {
-  ParserStack_.push_back("Expr");
+  ParserStack_.push_back("ParseExpr");
   if (!PeekAndCheckToken()) return nullptr;
 
   switch (LastReadTok_.Kind) {
@@ -191,35 +193,46 @@ std::unique_ptr<Expr> Parser::ParseExpr() {
       return nullptr;
     case TOK_INT:
       ParserStack_.pop_back();
-      return ParseIntegerLiteral();
+      ReadAndCheckToken(lang::TOK_INT);
+      return ParseIntegerLiteral(LastReadTok_);
     case TOK_STR:
       ParserStack_.pop_back();
-      return ParseStringLiteral();
+      ReadAndCheckToken(lang::TOK_STR);
+      return ParseStringLiteral(LastReadTok_);
     case TOK_ID:
       ParserStack_.pop_back();
-      return ParseIDExpr();
+      ReadAndCheckToken(lang::TOK_ID);
+      return ParseIDExpr(LastReadTok_);
   }
 }
 
 std::unique_ptr<StringLiteral> Parser::ParseStringLiteral() {
   ParserStack_.push_back("StringLiteral");
   if (!ReadAndCheckToken(lang::TOK_STR)) return nullptr;
+  auto literal = ParseStringLiteral(LastReadTok_);
   ParserStack_.pop_back();
-  return std::make_unique<StringLiteral>(LastReadTok_.Chars);
+  return literal;
+}
+
+std::unique_ptr<StringLiteral> Parser::ParseStringLiteral(Token strtok) {
+  return std::make_unique<StringLiteral>(strtok.Chars);
 }
 
 std::unique_ptr<IntegerLiteral> Parser::ParseIntegerLiteral() {
-  ParserStack_.push_back("IntegerLiteral");
   if (!ReadAndCheckToken(lang::TOK_INT)) return nullptr;
-  auto Literal = IntegerLiteral::FromStr(LastReadTok_.Chars);
+  return ParseIntegerLiteral(LastReadTok_);
+}
+
+std::unique_ptr<IntegerLiteral> Parser::ParseIntegerLiteral(Token inttok) {
+  ParserStack_.push_back("IntegerLiteral");
+  auto Literal = IntegerLiteral::FromStr(inttok.Chars);
   if (!Literal) Status_ = PSTAT_BAD_INT_ERR;
   ParserStack_.pop_back();
   return Literal;
 }
 
 /**
- * exprlist ::= expr
- *          ::= expr (',' expr)*
+ * exprlist ::= expr (',' expr)*
  */
 bool Parser::ParseExprList(std::vector<std::unique_ptr<Expr>> &ExprList) {
   ParserStack_.push_back("ExprList");
@@ -242,20 +255,14 @@ bool Parser::ParseExprList(std::vector<std::unique_ptr<Expr>> &ExprList) {
 }
 
 /**
- * idexpr ::= ID
- *        ::= idexpr '(' ')'
- *        ::= idexpr '(' exprlist ')'
+ * idexpr ::= ID ('(' exprlist* ')')*
  */
-std::unique_ptr<Expr> Parser::ParseIDExpr() {
-  ParserStack_.push_back("IDExpr");
-  if (!ReadAndCheckToken(lang::TOK_ID)) return nullptr;
-  Token Tok = LastReadTok_;
-  auto Caller = std::make_unique<ID>(Tok.Chars);
+std::unique_ptr<Expr> Parser::ParseIDExpr(Token idtok) {
+  auto Caller = std::make_unique<ID>(idtok.Chars);
 
   if (!PeekAndCheckToken()) return nullptr;
 
   if (LastReadTok_.Kind != TOK_LPAR) {
-    ParserStack_.pop_back();
     return Caller;
   }
 
@@ -265,7 +272,6 @@ std::unique_ptr<Expr> Parser::ParseIDExpr() {
 
   if (LastReadTok_.Kind == lang::TOK_RPAR) {
     // Call with no args
-    ParserStack_.pop_back();
     return std::make_unique<Call>(std::move(Caller));
   }
 
@@ -277,12 +283,23 @@ std::unique_ptr<Expr> Parser::ParseIDExpr() {
 
   if (!ReadAndCheckToken(lang::TOK_RPAR)) return nullptr;
 
-  ParserStack_.pop_back();
   return std::make_unique<Call>(std::move(Caller), ExprList);
 }
 
 /**
+ * idexpr ::= ID ('(' exprlist* ')')*
+ */
+std::unique_ptr<Expr> Parser::ParseIDExpr() {
+  ParserStack_.push_back("IDExpr");
+  if (!ReadAndCheckToken(lang::TOK_ID)) return nullptr;
+  auto expr = ParseIDExpr(LastReadTok_);
+  ParserStack_.pop_back();
+  return expr;
+}
+
+/**
  * stmt ::= 'return' expr ';'
+ *      ::= ID ':' type '=' expr ';'
  *      ::= expr ';'
  */
 std::unique_ptr<Stmt> Parser::ParseStmt() {
@@ -295,13 +312,17 @@ std::unique_ptr<Stmt> Parser::ParseStmt() {
       if (!ReadAndCheckToken(lang::TOK_RETURN)) return nullptr;
       std::unique_ptr<Expr> E = ParseExpr();
       if (!E) return nullptr;
-      stmt.reset(new Return(std::move(E)));
+      stmt = std::make_unique<Return>(std::move(E));
       break;
     }
+    case TOK_ID:
+      if (!ReadAndCheckToken(lang::TOK_ID)) return nullptr;
+      stmt = ParseVarDeclOrIDExprStmt(LastReadTok_);
+      break;
     default: {
       std::unique_ptr<Expr> E = ParseExpr();
       if (!E) return nullptr;
-      stmt.reset(new ExprStmt(std::move(E)));
+      stmt = std::make_unique<ExprStmt>(std::move(E));
       break;
     }
   }
@@ -310,6 +331,44 @@ std::unique_ptr<Stmt> Parser::ParseStmt() {
 
   ParserStack_.pop_back();
   return stmt;
+}
+
+/**
+ * vardecl_or_idexpr ::= ID ':' type '=' expr ';'
+ *                   ::= idexpr ';'
+ */
+std::unique_ptr<ast::Stmt> Parser::ParseVarDeclOrIDExprStmt(Token idtok) {
+  ParserStack_.push_back("DeclOrIDExprStmt");
+  if (!PeekAndCheckToken()) return nullptr;
+
+  ParserStack_.pop_back();
+  if (LastReadTok_.Kind == TOK_COL)
+    return ParseVarDecl(idtok);
+  else
+    return std::make_unique<ExprStmt>(ParseIDExpr(idtok));
+}
+
+/**
+ * vardecl ::= ID ':' type '=' expr ';'
+ */
+std::unique_ptr<ast::Stmt> Parser::ParseVarDecl(Token idtok) {
+  ParserStack_.push_back("vardecl");
+  if (!ReadAndCheckToken(lang::TOK_COL)) return nullptr;
+
+  std::unique_ptr<Type> Ty = ParseType();
+
+  if (!PeekAndCheckToken()) return nullptr;
+  if (LastReadTok_.Kind == lang::TOK_SEMICOL) {
+    ParserStack_.pop_back();
+    return std::make_unique<VarDecl>(std::move(Ty), idtok.Chars);
+  }
+
+  if (!ReadAndCheckToken(lang::TOK_ASSIGN)) return nullptr;
+
+  std::unique_ptr<Expr> E = ParseExpr();
+
+  ParserStack_.pop_back();
+  return std::make_unique<VarDecl>(std::move(Ty), idtok.Chars, std::move(E));
 }
 
 bool Parser::DebugOk() const {

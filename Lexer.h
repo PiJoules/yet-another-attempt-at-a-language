@@ -24,12 +24,14 @@ enum TokenKind {
   // New non-alpha numeric characters added here will need to be checked in
   // Lexer::ReadToken()
   TOK_SEMICOL,
+  TOK_COL,
   TOK_COMMA,
   TOK_LPAR,
   TOK_RPAR,
   TOK_LBRACE,  // {
   TOK_RBRACE,  // }
   TOK_DQUOTE,
+  TOK_ASSIGN,
 };
 
 struct Token {

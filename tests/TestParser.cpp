@@ -18,6 +18,7 @@ using lang::ast::Stmt;
 using lang::ast::StringLiteral;
 using lang::ast::Type;
 using lang::ast::Typename;
+using lang::ast::VarDecl;
 
 #define TEST_PARSER_ERR(CLASS, INPUT, TOK_KIND, PERR, PERR_NAME)   \
   TEST_F(ParserTest, Parse##CLASS##_##PERR_NAME) {                 \
@@ -335,6 +336,44 @@ TEST_F(ParserTest, Empty) {
   std::unique_ptr<Module> Mod = Parse.Parse();
   ASSERT_NE(Mod, nullptr);
   ASSERT_TRUE(Mod->ExternDecls().empty());
+}
+
+TEST_F(ParserTest, VarDecl) {
+  Input_ << "x : int = 2;";
+  Parser Parse(Input_);
+  std::unique_ptr<Stmt> stmt = Parse.ParseStmt();
+  ASSERT_TRUE(Parse.DebugOk());
+  ASSERT_NE(stmt, nullptr);
+
+  const auto *decl = static_cast<const VarDecl *>(stmt.get());
+  ASSERT_STREQ(decl->Name().c_str(), "x");
+
+  const auto &ty = static_cast<const Typename &>(decl->VarType());
+  ASSERT_STREQ(ty.Name().c_str(), "int");
+
+  ASSERT_TRUE(decl->HasInit());
+  const auto &init = dynamic_cast<const IntegerLiteral &>(decl->Init());
+  ASSERT_EQ(init.Value(), 2);
+
+  ASSERT_TRUE(Parse.ReachedEOF());
+}
+
+TEST_F(ParserTest, VarDeclNoInit) {
+  Input_ << "x : int;";
+  Parser Parse(Input_);
+  std::unique_ptr<Stmt> stmt = Parse.ParseStmt();
+  ASSERT_TRUE(Parse.DebugOk());
+  ASSERT_NE(stmt, nullptr);
+
+  const auto *decl = static_cast<const VarDecl *>(stmt.get());
+  ASSERT_STREQ(decl->Name().c_str(), "x");
+
+  const auto &ty = static_cast<const Typename &>(decl->VarType());
+  ASSERT_STREQ(ty.Name().c_str(), "int");
+
+  ASSERT_FALSE(decl->HasInit());
+
+  ASSERT_TRUE(Parse.ReachedEOF());
 }
 
 TEST_F(ParserTest, HelloWorld) {
